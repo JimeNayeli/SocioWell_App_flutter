@@ -1,0 +1,11 @@
+{"flutter":
+{"platforms":{
+    "android":{
+        "default":{
+            "projectId":"tesis-v2t",
+            "appId":"1:568114551374:android:22f1b1d77ea2d2c903011f",
+            "fileOutput":"android/app/google-services.json"}},
+            "dart":{"lib/firebase_options.dart":{
+                "projectId":"tesis-v2t","configurations":{
+                    "android":"1:568114551374:android:22f1b1d77ea2d2c903011f",
+                    "ios":"1:568114551374:ios:f616d55108fcaeed03011f"}}}}}}
