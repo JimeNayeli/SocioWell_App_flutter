@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tesis_v2/common/widgets/notifications/social_media_notification.dart';
 import 'package:tesis_v2/core/configs/theme/app_theme.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,7 +24,7 @@ Future<void> main() async {
   );
 
   await initializeDependencies();
-  await BackgroundMonitor.initialize();
+  
   runApp(const MyApp());
 }
 class MyApp extends StatelessWidget {

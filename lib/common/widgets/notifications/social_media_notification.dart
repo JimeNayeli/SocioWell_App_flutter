@@ -45,7 +45,7 @@ class BackgroundMonitor {
         onBackground: onIosBackground,
       ),
     );
-
+     await service.startService();
   }
 
 
@@ -58,11 +58,13 @@ class BackgroundMonitor {
   static void onStart(ServiceInstance service) async {
 
      if (service is AndroidServiceInstance) {
+      await service.setAsForegroundService();
       service.setForegroundNotificationInfo(
         title: 'Monitoreo activo',
         content: 'El monitoreo está funcionando en segundo plano.',
-    );
-  }
+      );
+      //print('se ejecuta en servicio: ');
+    }
     final hasPermission = await UsageStats.checkUsagePermission();
     if (hasPermission == null || !hasPermission) {
       return;
@@ -122,19 +124,19 @@ class BackgroundMonitor {
     _activeApps.forEach((appName, startTime) {
       final usageTime = now.difference(startTime);
       //print('Notificación de 10 minutos activada para $appName. Tiempo: ${usageTime.inMinutes} minutos');
-      if (usageTime.inMinutes == 60) {
+      if (usageTime.inMinutes == 125) {
         _showNotification(
           'Alerta de uso',
-          'Has usado $appName por más de 35 minutos. ¿Qué tal tomar un descanso?',
+          'Has usado $appName por más de 2 horas. ¿Qué tal tomar un descanso?',
         );
       }
-      if (usageTime.inMinutes == 120) {
+      if (usageTime.inMinutes == 185) {
         _showNotification(
           'Uso excesivo',
-          'Has usado $appName por más de 3 horas. El uso prolongado puede afectar tu bienestar. Es momento de tomar un descanso.',
+          'Has usado $appName por más de 3 horas. El uso prolongado puede afectar tu bienestar. Toma un descanso.',
         );
       }
-      if (usageTime.inMinutes >= 30 && usageTime.inMinutes % 30 == 0) {
+      if (usageTime.inMinutes >= 60 && usageTime.inMinutes % 60 == 0) {
         _showNotification(
           'Alerta de uso continuo',
           'Has estado usando $appName por ${usageTime.inMinutes} minutos. Recuerda hacer una pausa',
@@ -146,24 +148,39 @@ class BackgroundMonitor {
   }
 
   static Future<void> _initNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const settings = InitializationSettings(android: androidSettings);
-    await _notifications.initialize(settings);
-  }
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const settings = InitializationSettings(android: androidSettings);
+
+  await _notifications.initialize(settings);
+
+  const androidChannel = AndroidNotificationChannel(
+    'background_monitor', // ID del canal
+    'Background Monitor',
+    description: 'Notificaciones del servicio en segundo plano',
+    importance: Importance.max,
+  );
+
+  final notifications = FlutterLocalNotificationsPlugin();
+  await notifications
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(androidChannel);
+}
+
 
   static Future<void> _showNotification(String title, String body) async {
-    const androidDetails = AndroidNotificationDetails(
-      'app_monitor',
-      'App Usage Monitor',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
-    
-    await _notifications.show(
-      0,
-      title,
-      body,
-      const NotificationDetails(android: androidDetails)
-    );
-  }
+  const androidDetails = AndroidNotificationDetails(
+    'background_monitor', // Cambia a 'background_monitor'
+    'Background Monitor',
+    importance: Importance.high,
+    priority: Priority.high,
+  );
+
+  await _notifications.show(
+    0,
+    title,
+    body,
+    const NotificationDetails(android: androidDetails),
+  );
+}
+
 }
