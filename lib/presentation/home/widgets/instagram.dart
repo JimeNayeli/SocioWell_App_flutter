@@ -41,7 +41,7 @@ bool isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
   
     if (isPermissionGranted == true) {
       DateTime endDate = DateTime.now();
-      DateTime startDate = endDate.subtract(Duration(days: 7));
+      DateTime startDate = endDate.subtract(const Duration(days: 7));
 
       List<UsageInfo> usageInfoList = await UsageStats.queryUsageStats(
         startDate,
@@ -138,15 +138,15 @@ bool isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Icono
-              Icon(FontAwesomeIcons.instagram, color: Colors.pink, size: 64),
-              SizedBox(height: 16),
+              const Icon(FontAwesomeIcons.instagram, color: Colors.pink, size: 64),
+              const SizedBox(height: 16),
 
               // Título
-              Text(
+              const Text(
                 "Instagram",
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Contenido
               _isInstagramInstalled
@@ -155,21 +155,21 @@ bool isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
                         Text(
                           "Promedio diario de uso: $_averageDailyUsage min/dia",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           "Accesos promedio al día: $_averageDailyAccesses veces/día",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           "Mayor frecuencia: $_averageDailyFrecuency",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        SizedBox(height: 25),
+                        const SizedBox(height: 25),
                         AppButtonSmall(
                           onPressed: () async {
                             Navigator.push(
@@ -188,7 +188,7 @@ bool isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
                         ),
                       ],
                     )
-                  : Text(
+                  : const Text(
                       "Instagram no está instalado o no hay datos disponibles.",
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16, color: Colors.red),

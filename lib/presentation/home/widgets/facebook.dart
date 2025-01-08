@@ -141,15 +141,15 @@ Future<void> _fetchFacebookUsage() async {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Icono
-              Icon(Icons.facebook, color: Colors.blue, size: 64),
-              SizedBox(height: 16),
+              const Icon(Icons.facebook, color: Colors.blue, size: 64),
+              const SizedBox(height: 16),
 
               // Título
-              Text(
+              const Text(
                 "Facebook",
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Contenido
               _isFacebookInstalled
@@ -158,21 +158,21 @@ Future<void> _fetchFacebookUsage() async {
                         Text(
                           "Promedio diario de uso: $_averageDailyUsage min/dia",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           "Accesos promedio al día: $_averageDailyAccesses veces/día",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           "Mayor frecuencia: $_averageDailyFrecuency",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        SizedBox(height: 25),
+                        const SizedBox(height: 25),
                         AppButtonSmall(
                           onPressed: () async {
                             Navigator.push(
@@ -192,7 +192,7 @@ Future<void> _fetchFacebookUsage() async {
 
                       ],
                     )
-                  : Text(
+                  : const Text(
                       "Facebook no está instalado o no hay datos disponibles.",
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16, color: Colors.red),

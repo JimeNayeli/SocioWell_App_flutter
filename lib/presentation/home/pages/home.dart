@@ -3,6 +3,7 @@ import 'package:tesis_v2/common/helpers/is_dark_mode.dart';
 import 'package:tesis_v2/core/configs/theme/app_colors.dart';
 import 'package:tesis_v2/presentation/home/pages/app_info.dart';
 import 'package:tesis_v2/presentation/home/widgets/home_top_card.dart';
+import 'package:tesis_v2/presentation/home/widgets/instructions.dart';
 class HomePage extends StatefulWidget {
   final String fullName;
   const HomePage({Key? key, required this.fullName}) : super(key: key);
@@ -17,7 +18,7 @@ class HomePage extends StatefulWidget {
   @override
   void initState(){
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
   @override
   Widget build(BuildContext context) {
@@ -33,10 +34,11 @@ class HomePage extends StatefulWidget {
               children: [
                 _tabs(),
                 SizedBox(
-                  height: 600,
+                  height: MediaQuery.of(context).size.height * 0.8,
                   child: TabBarView(
                     controller: _tabController,
                     children: [
+                      InstructionCard(),
                       HomeTopCard(),
                       const AppInfo(),
                     ],
@@ -62,6 +64,13 @@ class HomePage extends StatefulWidget {
         horizontal: 8
       ),
       tabs: const [
+        Text(
+          'Instrucciones',
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 16
+          ),
+        ),
         Text(
           'Cuestionario de uso',
           style: TextStyle(

@@ -3,6 +3,7 @@ import 'package:tesis_v2/common/widgets/appbar/app_bar.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:tesis_v2/core/configs/assets/app_vectors.dart';
 import 'package:tesis_v2/data/models/auth/signin_user_req.dart';
+import 'package:tesis_v2/domain/usescases/auth/signin_google.dart';
 import '../../../common/widgets/button/basic_app_button.dart';
 import '../../../domain/usescases/auth/signin.dart';
 import '../../../service_locator.dart';
@@ -20,6 +21,7 @@ class _SigninPageState extends State<SigninPage> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -93,12 +95,95 @@ class _SigninPageState extends State<SigninPage> {
                     },
                     title: 'Ingresar',
                   ),
+            const SizedBox(height: 25),
+            const Row(
+            children: [
+              Expanded(
+                child: Divider(
+                  thickness: 1,
+                  color: Colors.grey, // Cambia el color de la línea si es necesario
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text(
+                  "o",
+                  style: TextStyle(
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Divider(
+                  thickness: 1,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        const SizedBox(height: 20),
+            _googleSignInButton(), // Botón de Google Sign-In
           ],
         ),
       ),
     );
   }
 
+Widget _googleSignInButton() {
+  return GestureDetector(
+    onTap: () async {
+      setState(() => _isLoading = true);
+      var result = await sl<SigninGoogleCase>().call();
+      setState(() => _isLoading = false);
+      
+      result.fold(
+        (l) {
+          var snackbar = SnackBar(
+            content: Text(l),
+            behavior: SnackBarBehavior.floating,
+          );
+          ScaffoldMessenger.of(context).showSnackBar(snackbar);
+        },
+        (r) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (BuildContext context) => HomePage(fullName: r.fullName),
+            ),
+            (route) => false,
+          );
+        },
+      );
+    },
+    child: Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SvgPicture.asset(
+            AppVectors.google,  // Asegúrate de tener definida esta constante
+            height: 24,
+            width: 24,
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'Continuar con Google',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
   Widget _registerText() {
     return const Text(
       'Inicio de Sesión',
@@ -115,12 +200,23 @@ class _SigninPageState extends State<SigninPage> {
     );
   }
 
-  Widget _passwordField(BuildContext context) {
+   Widget _passwordField(BuildContext context) {
     return TextField(
       controller: _password,
-      obscureText: true, // Oculta los caracteres con puntos
-      decoration: const InputDecoration(hintText: 'Contraseña')
-          .applyDefaults(Theme.of(context).inputDecorationTheme),
+      obscureText: !_isPasswordVisible, // Cambia según el estado de visibilidad
+      decoration: InputDecoration(
+        hintText: 'Contraseña',
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+          ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible; // Cambia el estado
+            });
+          },
+        ),
+      ).applyDefaults(Theme.of(context).inputDecorationTheme),
     );
   }
 

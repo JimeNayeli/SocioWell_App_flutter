@@ -85,7 +85,7 @@ Widget build(BuildContext context) {
       : Center(
           child: Container(
             width: 330,
-            height: 600,
+            height: MediaQuery.of(context).size.height * 0.8,
             decoration: BoxDecoration(
               color: context.isDarkMode ? Colors.black : Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -113,7 +113,7 @@ Widget build(BuildContext context) {
                           ),
                         ),
                       ),
-                      SizedBox(height: 15),
+                      const SizedBox(height: 15),
                       Text(
                         "Responde las 3 preguntas para ver tu resultado. Califica cada afirmación del 1 al 10, donde 1 significa que no estás de acuerdo en absoluto y 10 significa que estás completamente de acuerdo.",
                         style: TextStyle(

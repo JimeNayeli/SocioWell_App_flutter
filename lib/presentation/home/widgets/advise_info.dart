@@ -38,7 +38,7 @@ class AdviceCard extends StatelessWidget {
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: Colors.amber, width: 2), // Borde del mismo color del icono
+        side: const BorderSide(color: Colors.amber, width: 2), 
       ),
       color: Colors.amber[50],
       child: Padding(
@@ -46,24 +46,24 @@ class AdviceCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.lightbulb, color: Colors.amber, size: 40),
-            SizedBox(width: 16),
+            const Icon(Icons.lightbulb, color: Colors.amber, size: 40),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     "Consejo para Nivel $level",
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.blueAccent,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     advice,
-                    style: TextStyle(fontSize: 16, color: Colors.black87),
+                    style: const TextStyle(fontSize: 16, color: Colors.black87),
                   ),
                 ],
               ),

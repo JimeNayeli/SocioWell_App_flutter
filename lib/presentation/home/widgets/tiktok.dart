@@ -42,7 +42,7 @@ class _TiktokState extends State<Tiktok> {
   
     if (isPermissionGranted == true) {
       DateTime endDate = DateTime.now();
-      DateTime startDate = endDate.subtract(Duration(days: 7));
+      DateTime startDate = endDate.subtract(const Duration(days: 7));
 
       List<UsageInfo> usageInfoList = await UsageStats.queryUsageStats(
         startDate,
@@ -139,14 +139,14 @@ class _TiktokState extends State<Tiktok> {
             children: [
               // Icono
               Icon(FontAwesomeIcons.tiktok, color: context.isDarkMode? Colors.white : Colors.black, size: 64),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Título
-              Text(
+              const Text(
                 "Tiktok",
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Contenido
               _isTiktokInstalled
@@ -155,21 +155,21 @@ class _TiktokState extends State<Tiktok> {
                         Text(
                           "Promedio diario de uso: $_averageDailyUsage min/dia",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           "Accesos promedio al día: $_averageDailyAccesses veces/dia",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           "Mayor frecuencia: $_averageDailyFrecuency",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        SizedBox(height: 25),
+                        const SizedBox(height: 25),
                         AppButtonSmall(
                           onPressed: () async {
                             Navigator.push(
@@ -188,7 +188,7 @@ class _TiktokState extends State<Tiktok> {
                         ),
                       ],
                     )
-                  : Text(
+                  : const Text(
                       "Tiktok no está instalado o no hay datos disponibles.",
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16, color: Colors.red),

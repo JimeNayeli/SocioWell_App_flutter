@@ -15,6 +15,9 @@ class SignupPage extends StatelessWidget {
   final TextEditingController _fullName = TextEditingController();
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
+  final TextEditingController _confirmPassword = TextEditingController();
+  final ValueNotifier<bool> _isPasswordVisible = ValueNotifier(false);
+  final ValueNotifier<bool> _isConfirmPasswordVisible = ValueNotifier(false);
 
   @override
   Widget build(BuildContext context) {
@@ -36,16 +39,18 @@ class SignupPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             _registerText(),
-            const SizedBox(height: 50,),
+            const SizedBox(height: 30,),
             _fullNameField(context),
             const SizedBox(height: 20,),
             _emailField(context),
             const SizedBox(height: 20,),
             _passwordField(context),
             const SizedBox(height: 20,),
+            _confirmPasswordField(context),
+            const SizedBox(height: 20,),
             BasicAppButton(
               onPressed: () async {
-                if (_email.text.isEmpty || _password.text.isEmpty) {
+                if (_email.text.isEmpty || _password.text.isEmpty || _confirmPassword.text.isEmpty) {
                   var snackbar = const SnackBar(
                     content: Text("Por favor, completa todos los campos."),
                     behavior: SnackBarBehavior.floating,
@@ -53,6 +58,16 @@ class SignupPage extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(snackbar);
                   return;
                 }
+                
+                if (_password.text != _confirmPassword.text) {
+                  var snackbar = const SnackBar(
+                    content: Text("Las contraseñas no coinciden."),
+                    behavior: SnackBarBehavior.floating,
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(snackbar);
+                  return;
+                }
+
                 var result = await sl<SignupUseCase>().call(
                   params: CreateUserReq(
                     fullName: _fullName.text.toString(),
@@ -68,7 +83,7 @@ class SignupPage extends StatelessWidget {
                   (r){
                     Navigator.pushAndRemoveUntil(
                       context, 
-                      MaterialPageRoute(builder: (BuildContext context) => HomePage(fullName: r.fullName),), 
+                      MaterialPageRoute(builder: (BuildContext context) => HomePage(fullName: _fullName.text),), 
                       (route) => false
                     );
                   }
@@ -76,7 +91,6 @@ class SignupPage extends StatelessWidget {
               },
               title: 'Crear Cuenta'
             )
-      
           ],
         ),
       ),
@@ -93,7 +107,7 @@ class SignupPage extends StatelessWidget {
       textAlign: TextAlign.center,
     );
   }
-  
+
   Widget _fullNameField(BuildContext context) {
     return TextField(
       controller: _fullName,
@@ -117,14 +131,52 @@ class SignupPage extends StatelessWidget {
   }
 
   Widget _passwordField(BuildContext context) {
-    return TextField(
-      controller: _password,
-      obscureText: true, // Oculta los caracteres con puntos
-      decoration: const InputDecoration(
-        hintText: 'Contraseña',
-      ).applyDefaults(
-        Theme.of(context).inputDecorationTheme,
-      ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isPasswordVisible,
+      builder: (context, isVisible, child) {
+        return TextField(
+          controller: _password,
+          obscureText: !isVisible, // Cambia según el estado de visibilidad
+          decoration: InputDecoration(
+            hintText: 'Contraseña',
+            suffixIcon: IconButton(
+              icon: Icon(
+                isVisible ? Icons.visibility : Icons.visibility_off,
+              ),
+              onPressed: () {
+                _isPasswordVisible.value = !_isPasswordVisible.value; // Cambia el estado
+              },
+            ),
+          ).applyDefaults(
+            Theme.of(context).inputDecorationTheme,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _confirmPasswordField(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isConfirmPasswordVisible,
+      builder: (context, isVisible, child) {
+        return TextField(
+          controller: _confirmPassword,
+          obscureText: !isVisible, // Cambia según el estado de visibilidad
+          decoration: InputDecoration(
+            hintText: 'Confirmar Contraseña',
+            suffixIcon: IconButton(
+              icon: Icon(
+                isVisible ? Icons.visibility : Icons.visibility_off,
+              ),
+              onPressed: () {
+                _isConfirmPasswordVisible.value = !_isConfirmPasswordVisible.value; // Cambia el estado
+              },
+            ),
+          ).applyDefaults(
+            Theme.of(context).inputDecorationTheme,
+          ),
+        );
+      },
     );
   }
 
@@ -148,7 +200,7 @@ class SignupPage extends StatelessWidget {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (BuildContext context) => SigninPage()
+                  builder: (BuildContext context) => const SigninPage()
                 )
               );
             },

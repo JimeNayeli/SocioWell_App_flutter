@@ -35,8 +35,8 @@ class _AddictionPageState extends State<AddictionPage> {
   }
 
   // Parámetros del StandardScaler desde Python
-  final List<double> scalerMean = [151.555   ,  10.0175  ,  64.059625,   2.60925 ,  39.479475]; // Sustituye con los valores reales
-  final List<double> scalerScale = [83.6647296, 5.35230733, 33.5332278, 0.0465235156, 20.1202847];  // Sustituye con los valores reales
+  final List<double> scalerMean = [151.555   ,  10.0175  ,  64.059625,   2.60925 ,  39.479475]; 
+  final List<double> scalerScale = [83.6647296, 5.35230733, 33.5332278, 0.0465235156, 20.1202847];  
 
   // Escalado estándar
   double standardScale(double value, double mean, double scale) {
@@ -174,13 +174,26 @@ Future<List<double>> generateInput() async {
           }
 
           if (snapshot.hasError || !snapshot.hasData || snapshot.data![0] == -1) {
-            return const Center(
-              child: Text(
-                'Error al predecir el nivel de adicción.\nPor favor, verifica tus respuestas.',
-                textAlign: TextAlign.center,
-              ),
-            );
-          }
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error, // Ícono de error
+                  color: Colors.red, // Cambia el color según tus preferencias
+                  size: 50, // Tamaño del ícono
+                ),
+                SizedBox(height: 16), // Espacio entre el ícono y el texto
+                Text(
+                  'Error al predecir el nivel de adicción.\nPor favor, verifica tus respuestas\n en el cuestionario de uso.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18), // Opcional: ajustar el tamaño de fuente
+                ),
+              ],
+            ),
+          );
+        }
+
 
           int predictedLevel = snapshot.data![0];
 
