@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:tesis_v2/common/widgets/appbar/app_bar.dart';
 import 'package:tesis_v2/core/configs/assets/app_model.dart';
+import 'package:tesis_v2/core/configs/theme/app_colors.dart';
+import 'package:tesis_v2/data/models/usage/save_usage.dart';
 import 'package:tesis_v2/domain/usescases/answer/get_answer.dart';
+import 'package:tesis_v2/domain/usescases/usage/save_usage.dart';
 import 'package:tesis_v2/presentation/home/widgets/addiction_info.dart';
 import 'package:tesis_v2/presentation/home/widgets/advise_info.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -21,14 +25,13 @@ class AddictionPage extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  // ignore: library_private_types_in_public_api
   _AddictionPageState createState() => _AddictionPageState();
 }
 
 class _AddictionPageState extends State<AddictionPage> {
   late Future<List<dynamic>> _predictionFuture;
 
-  @override
+   @override
   void initState() {
     super.initState();
     _predictionFuture = predictAddictionLevel();
@@ -155,17 +158,87 @@ Future<List<double>> generateInput() async {
       int predictedLevel = probabilities.indexOf(probabilities.reduce((a, b) => a > b ? a : b));
 
       interpreter.close();
+      await savePredictedData(
+      fechaRegistro: DateTime.now().toIso8601String(), // Fecha actual
+      tiempoUso: widget.averageDailyUsage,
+      accesos: widget.averageDailyAccesses,
+      nivelAdiccion: predictedLevel.toString(),
+    );
       return [predictedLevel, probabilities];
     } catch (e) {
       //print('Error al cargar el modelo: $e');
       return [-1, []];
     }
   }
+Future<void> savePredictedData({
+  required String fechaRegistro,
+  required String tiempoUso,
+  required String accesos,
+  required String nivelAdiccion,
+}) async {
+  try {
+    final usageModel = SaveUsage(
+      fechaRegistro: fechaRegistro,
+      tiempoUso: widget.averageDailyUsage,
+      accesos: widget.averageDailyAccesses,
+      nivelAdiccion: nivelAdiccion,
+      appName: widget.appName, // Nombre de la aplicación
+      momentoDia: widget.averageDailyFrecuency,
+    );
+
+    final result = await sl<CreateUsageUseCase>().call(params: usageModel);
+
+    result.fold(
+      (failure) {
+        var snackbar = SnackBar(
+          content: Text('Error al guardar los datos: $failure'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snackbar);
+      },
+      (success) {
+        var snackbar = SnackBar(
+          content: Text('Datos guardados exitosamente: $success'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.green,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snackbar);
+      },
+    );
+  } catch (e) {
+    var snackbar = SnackBar(
+      content: Text('Error al guardar los datos: ${e.toString()}'),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: Colors.red,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackbar);
+  }
+}
+
+
+
+  Color getColorForLevel(int level) {
+    if (level <= 2) {
+      return Colors.green;
+    } else if (level <= 5) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Diagnóstico de Adicción')),
+      appBar: const BasicAppbar(
+        backgroundColor: Color(0xFF046051),
+        title: Text('Diagnóstico de Adicción',style: TextStyle(
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),),
+      ),
       body: FutureBuilder<List<dynamic>>(
         future: _predictionFuture,
         builder: (context, snapshot) {
@@ -174,50 +247,88 @@ Future<List<double>> generateInput() async {
           }
 
           if (snapshot.hasError || !snapshot.hasData || snapshot.data![0] == -1) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error, // Ícono de error
-                  color: Colors.red, // Cambia el color según tus preferencias
-                  size: 50, // Tamaño del ícono
-                ),
-                SizedBox(height: 16), // Espacio entre el ícono y el texto
-                Text(
-                  'Error al predecir el nivel de adicción.\nPor favor, verifica tus respuestas\n en el cuestionario de uso.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18), // Opcional: ajustar el tamaño de fuente
-                ),
-              ],
-            ),
-          );
-        }
-
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error, color: Colors.red, size: 50),
+                  SizedBox(height: 16),
+                  Text(
+                    'Error al predecir el nivel de adicción.\nPor favor, verifica tus respuestas\n en el cuestionario de uso.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ],
+              ),
+            );
+          }
 
           int predictedLevel = snapshot.data![0];
+          Color levelColor = getColorForLevel(predictedLevel);
 
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  widget.appName,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                Text(
-                  'Nivel de adicción predicho: $predictedLevel',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                AdviceCard(level: predictedLevel),
-                const SizedBox(height: 16),
-                const AddictionInfoBox(),
-              ],
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Círculo superior pequeño con color principal
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.backCard,
+                    ),
+                    child: const Icon(
+                      Icons.phone_android,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Nombre de la red social
+                  Text(
+                    widget.appName,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Nivel de adicción
+                  Text(
+                    'Nivel de adicción:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Círculo grande con el color según el nivel
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: levelColor,
+                    ),
+                    child: Center(
+                      child: Text(
+                        predictedLevel.toString(),
+                        style: const TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  AdviceCard(level: predictedLevel),
+                  const SizedBox(height: 14),
+                  const AddictionInfoBox(),
+                ],
+              ),
             ),
           );
         },

@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:tesis_v2/common/widgets/notifications/social_media_notification.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -151,8 +150,7 @@ class ChooseModePage extends StatelessWidget {
                  ),
                   const SizedBox(height: 50,),
                   BasicAppButton(
-                    onPressed: ()async {
-                      await BackgroundMonitor.initialize();
+                    onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(

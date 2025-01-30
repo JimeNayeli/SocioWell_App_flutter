@@ -3,7 +3,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'dart:async';
 
-
 class BackgroundMonitor {
   static const Map<String, String> socialApps = {
     'com.facebook.katana': 'Facebook',
@@ -71,8 +70,7 @@ class BackgroundMonitor {
     }
 
     
-
- Timer.periodic(const Duration(seconds: 10), (timer) async {
+Timer.periodic(const Duration(seconds: 10), (timer) async {
     final now = DateTime.now();
     final events = await UsageStats.queryEvents(
       now.subtract(const Duration(seconds: 10)),
@@ -110,7 +108,7 @@ class BackgroundMonitor {
         final usageTime = timestamp.difference(startTime);
 
         // Ignorar cierres que ocurren inmediatamente después de abrir
-        if (usageTime.inSeconds < 5) {
+        if (usageTime.inSeconds < 4) {
           //print('Cierre ignorado debido a tiempo muy corto: $appName');
           continue;
         }
@@ -144,7 +142,6 @@ class BackgroundMonitor {
       }
     });
   });
-
   }
 
   static Future<void> _initNotifications() async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tesis_v2/common/helpers/is_dark_mode.dart';
 import 'package:tesis_v2/common/widgets/appbar/app_bar.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:tesis_v2/core/configs/assets/app_vectors.dart';
@@ -14,6 +15,7 @@ class SigninPage extends StatefulWidget {
   const SigninPage({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _SigninPageState createState() => _SigninPageState();
 }
 
@@ -30,8 +32,8 @@ class _SigninPageState extends State<SigninPage> {
       appBar: BasicAppbar(
         title: SvgPicture.asset(
           AppVectors.logo,
-          height: 40,
-          width: 40,
+          height: 80,
+          width: 80,
         ),
       ),
       body: SingleChildScrollView(
@@ -158,7 +160,7 @@ Widget _googleSignInButton() {
     child: Container(
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.transparent,
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(25),
       ),
@@ -171,12 +173,12 @@ Widget _googleSignInButton() {
             width: 24,
           ),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             'Continuar con Google',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: Colors.black87
+              color: context.isDarkMode ? Colors.white : Colors.black,
             ),
           ),
         ],

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:tesis_v2/common/helpers/is_dark_mode.dart';
 import 'package:tesis_v2/common/widgets/button/button_app_small.dart';
+import 'package:tesis_v2/core/configs/theme/app_colors.dart';
 import 'package:tesis_v2/presentation/home/pages/addiction.dart';
+
 import 'package:usage_stats_new/usage_stats.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -18,186 +20,384 @@ class _TiktokState extends State<Tiktok> {
   String _averageDailyFrecuency = "Cargando...";
   bool _isTiktokInstalled = true;
 
+  // Nueva estructura para el ListView
+  Map<String, Map<String, dynamic>> _dailyUsage = {};
+
   @override
   void initState() {
     super.initState();
     _fetchTiktokUsage();
   }
 
-  Future<void> _fetchTiktokUsage() async {
-    try {
-      bool isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
-      if (!isPermissionGranted) {
-        await UsageStats.grantUsagePermission();
-        isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
+Future<void> _fetchTiktokUsage() async {
+  try {
+    bool isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
+    if (!isPermissionGranted) {
+      await UsageStats.grantUsagePermission();
+      isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
 
-        if (!isPermissionGranted) {
-          setState(() {
-            _averageDailyUsage = "Permiso denegado.";
-            _isTiktokInstalled = false;
-          });
-          return;
-        }
+      if (!isPermissionGranted) {
+        setState(() {
+          _averageDailyUsage = "Permiso denegado.";
+          _isTiktokInstalled = false;
+        });
+        return;
       }
-  
+    }
+
     if (isPermissionGranted == true) {
-      DateTime endDate = DateTime.now();
-      DateTime startDate = endDate.subtract(const Duration(days: 7));
+      DateTime now = DateTime.now();
+      //print('🕒 Fecha actual: ${now.toString()}');
+
+     DateTime endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      // Inicio hace 4 días a las 00:00:00
+      DateTime startDate = DateTime(
+        now.year,
+        now.month,
+        now.day - 4,
+        0,
+        0,
+        0,
+      );
+
+      //print('📅 Periodo de análisis:');
+      //print('   Inicio: ${startDate.toString()}');
+      //print('   Fin: ${endDate.toString()}');
 
       List<UsageInfo> usageInfoList = await UsageStats.queryUsageStats(
         startDate,
         endDate,
       );
 
-    var tiktokUsage = usageInfoList.where((info) => 
-      info.packageName!.contains('com.zhiliaoapp.musically') || 
-      info.packageName!.contains('com.ss.android.ugc.trill')
-    ).toList();
+      var TiktokUsage = usageInfoList.where((info) =>
+          info.packageName!.contains('com.zhiliaoapp.musically') ||
+          info.packageName!.contains('com.ss.android.ugc.trill')).toList();
 
-    List<EventUsageInfo> events = await UsageStats.queryEvents(startDate, endDate);
-    Map<String, int> opensPerDay = {};
-    
-    // Filtrar eventos de Facebook
-    const int sessionThresholdMillis = 5 * 60 * 1000; // 5 minutos entre sesiones
-    DateTime? lastEventTime;
+      //print('📱 Registros de uso encontrados: ${TiktokUsage.length}');
 
-    Map<String, int> frequency = {
-        "Mañana": 0, // 6:00 AM - 12:00 PM
-        "Tarde": 0,  // 12:00 PM - 6:00 PM
-        "Noche": 0,  // 6:00 PM - 12:00 AM
-        "Madrugada": 0, // 12:00 AM - 6:00 AM
-      };
-
-    for (var event in events) {
-      if (event.packageName != null &&
-          (event.packageName!.contains('com.zhiliaoapp.musically') ||
-          event.packageName!.contains('com.zhiliaoapp.musically.go')) &&
-          event.timeStamp != null &&
-          event.eventType == '1') {
-
-        DateTime eventTime = DateTime.fromMillisecondsSinceEpoch(
-          int.parse(event.timeStamp!)
-        );
-
-        if (lastEventTime == null || 
-            eventTime.difference(lastEventTime).inMilliseconds > sessionThresholdMillis) {
-          String day = "${eventTime.year}-${eventTime.month.toString().padLeft(2, '0')}-${eventTime.day.toString().padLeft(2, '0')}";
-          opensPerDay[day] = (opensPerDay[day] ?? 0) + 1;
-          lastEventTime = eventTime;
-        }
-
-        int hour = eventTime.hour;
-        if (hour >= 6 && hour < 12) {
-          frequency["Mañana"] = frequency["Mañana"]! + 1;
-        } else if (hour >= 12 && hour < 18) {
-          frequency["Tarde"] = frequency["Tarde"]! + 1;
-        } else if (hour >= 18 && hour < 24) {
-          frequency["Noche"] = frequency["Noche"]! + 1;
-        } else {
-          frequency["Madrugada"] = frequency["Madrugada"]! + 1;
+      DateTime? referenceTime;
+      for (var usage in TiktokUsage) {
+        if (usage.firstTimeStamp != null) {
+          DateTime timestamp = DateTime.fromMillisecondsSinceEpoch(
+            int.parse(usage.firstTimeStamp!),
+          );
+          if (referenceTime == null || timestamp.isBefore(referenceTime)) {
+            referenceTime = timestamp;
+          }
         }
       }
+      referenceTime ??= DateTime.now();
+      // Usar la hora del referenceTime para los rangos
+    int referenceHour = referenceTime.hour;
+    int referenceMinute = referenceTime.minute;
+      Map<String, Map<String, dynamic>> dailyRanges = {};
+      Map<String, int> usageTimePerDay = {};
+      
+      
+      // Inicializar el mapa para los últimos 4 días con rangos horarios
+      for (int i = 0; i < 4; i++) {
+      DateTime rangeStart = DateTime(
+        now.year, 
+        now.month, 
+        now.day - i - 1, 
+        referenceHour, 
+        referenceMinute
+      );
+      DateTime rangeEnd = DateTime(
+        now.year, 
+        now.month, 
+        now.day - i, 
+        referenceHour, 
+        referenceMinute
+      );
+      
+      String formattedDate = "${rangeStart.year}-${rangeStart.month.toString().padLeft(2, '0')}-${rangeStart.day.toString().padLeft(2, '0')}";
+      String timeRange = "${referenceHour.toString().padLeft(2, '0')}:${referenceMinute.toString().padLeft(2, '0')} → ${rangeEnd.day.toString().padLeft(2, '0')}/${rangeEnd.month.toString().padLeft(2, '0')} ${referenceHour.toString().padLeft(2, '0')}:${referenceMinute.toString().padLeft(2, '0')}";
+      
+      dailyRanges[formattedDate] = {
+        "start": rangeStart,
+        "end": rangeEnd,
+        "timeRange": timeRange
+      };
+      usageTimePerDay[formattedDate] = 0;
+      //print('🗓️ Inicializando día: $formattedDate (${timeRange})');
     }
 
-    String mostFrequentTime = frequency.entries
-          .reduce((a, b) => a.value > b.value ? a : b)
+      // Procesar tiempo de uso
+      for (var usage in TiktokUsage) {
+        if (usage.totalTimeInForeground == null || 
+            usage.firstTimeStamp == null || 
+            usage.lastTimeStamp == null) {
+          continue;
+        }
+
+        DateTime firstTimestamp = DateTime.fromMillisecondsSinceEpoch(
+          int.parse(usage.firstTimeStamp!),
+        );
+        
+        String formattedDate = "${firstTimestamp.year}-${firstTimestamp.month.toString().padLeft(2, '0')}-${firstTimestamp.day.toString().padLeft(2, '0')}";
+        
+        if (usageTimePerDay.containsKey(formattedDate)) {
+          int totalTime = int.parse(usage.totalTimeInForeground!);
+          int timeInMinutes = totalTime ~/ (1000 * 60);
+          usageTimePerDay[formattedDate] = (usageTimePerDay[formattedDate] ?? 0) + timeInMinutes;
+        }
+      }
+
+      // Procesar accesos
+      Map<String, int> opensPerDay = {};
+      Map<String, Map<String, dynamic>> frequency = {
+        "Mañana": {"count": 0, "hours": "6:00 - 11:59"},
+        "Tarde": {"count": 0, "hours": "12:00 - 17:59"},
+        "Noche": {"count": 0, "hours": "18:00 - 23:59"},
+        "Madrugada": {"count": 0, "hours": "0:00 - 5:59"},
+      };
+
+      // Inicializar opensPerDay con las mismas fechas
+      dailyRanges.keys.forEach((date) {
+        opensPerDay[date] = 0;
+      });
+
+      DateTime? lastEventTime;
+      const int sessionThresholdMillis = 5 * 60 * 1000;
+
+      List<EventUsageInfo> events = await UsageStats.queryEvents(startDate, endDate);
+
+      for (var event in events) {
+        if (event.packageName != null &&
+            (event.packageName!.contains('com.zhiliaoapp.musically') ||
+             event.packageName!.contains('com.zhiliaoapp.musically.go')) &&
+            event.timeStamp != null &&
+            event.eventType == '1') {
+
+          DateTime eventTime = DateTime.fromMillisecondsSinceEpoch(
+            int.parse(event.timeStamp!),
+          );
+
+          // Encontrar el rango al que pertenece este evento
+          String? relevantDate;
+          for (var entry in dailyRanges.entries) {
+            // Modificar la condición del rango para incluir los momentos exactos
+            if ((eventTime.isAfter(entry.value["start"]) || eventTime.isAtSameMomentAs(entry.value["start"])) && 
+                (eventTime.isBefore(entry.value["end"]) || eventTime.isAtSameMomentAs(entry.value["end"]))) {
+              relevantDate = entry.key;
+              break;
+            }
+          }
+
+          if (relevantDate != null) {
+            if (lastEventTime == null ||
+                eventTime.difference(lastEventTime).inMilliseconds > sessionThresholdMillis) {
+              opensPerDay[relevantDate] = (opensPerDay[relevantDate] ?? 0) + 1;
+
+              int hour = eventTime.hour;
+              String period;
+              if (hour >= 6 && hour < 12) {
+                period = "Mañana";
+              } else if (hour >= 12 && hour < 18) {
+                period = "Tarde";
+              } else if (hour >= 18 && hour < 24) {
+                period = "Noche";
+              } else {
+                period = "Madrugada";
+              }
+              
+              frequency[period]!["count"] = (frequency[period]!["count"] ?? 0) + 1;
+            }
+            lastEventTime = eventTime;
+          }
+        }
+      }
+      
+
+      // Calcular promedios y actualizar el estado
+      var validDays = usageTimePerDay.values.where((time) => time > 0).toList();
+      var validAccessDays = opensPerDay.values.where((count) => count > 0).toList();
+      opensPerDay.forEach((date, count) {
+      opensPerDay.forEach((date, count) {
+      if (usageTimePerDay[date] != null && usageTimePerDay[date]! > 0) {
+        // Asignar al menos 1 acceso si hay tiempo de uso y los accesos son 0
+        if (count == 0) {
+          opensPerDay[date] = 1;
+          // print('⚠️ Ajustando accesos para $date: Accesos ahora 1');
+        }
+      } else {
+        // Si el tiempo de uso es 0, asegurarse de que los accesos sean 0
+        opensPerDay[date] = 0;
+        // print('⚠️ Ajustando accesos para $date: Accesos ahora 0');
+      }
+    });
+
+    });
+
+      
+      int averageMinutes = validDays.isEmpty ? 0 : 
+          validDays.reduce((a, b) => a + b) ~/ 4;
+          
+      int avgAccesses = validAccessDays.isEmpty ? 0 : 
+          validAccessDays.reduce((sum, count) => sum + count) ~/ 4;
+
+      var mostFrequentTime = frequency.entries
+          .reduce((a, b) => (a.value["count"] ?? 0) > (b.value["count"] ?? 0) ? a : b)
           .key;
-    int totalAperturas = opensPerDay.values.fold(0, (sum, count) => sum + count);
-    int totalUsageTime = tiktokUsage.fold(0, (sum, info) => 
-      sum + int.parse(info.totalTimeInForeground ?? '0')
-    );
-      // Calcular promedios
-      int averageMinutes = (totalUsageTime ~/ (1000 * 60)) ~/ 7; // Promedio semanal
-      int totalOpens = totalAperturas ~/ opensPerDay.length;
 
-      setState(() {
-        _averageDailyFrecuency = mostFrequentTime;
-        _averageDailyUsage = averageMinutes.toString();
-        _averageDailyAccesses = totalOpens.toString();
+      // Actualizar _dailyUsage con los nuevos valores y rangos horarios
+      _dailyUsage.clear();
+      usageTimePerDay.forEach((day, time) {
+        _dailyUsage[day] = {
+          "time": time,
+          "accesses": opensPerDay[day] ?? 0,
+          "timeRange": dailyRanges[day]?["timeRange"],
+        };
       });
-    }} catch (e) {
       setState(() {
-        _isTiktokInstalled = false;
-        _averageDailyUsage = "Error al obtener datos.";
-        _averageDailyAccesses = "0 veces/día";
-        _averageDailyFrecuency = "No hay";
+        _averageDailyUsage = averageMinutes.toString();
+        _averageDailyAccesses = avgAccesses.toString();
+  _averageDailyFrecuency = '$mostFrequentTime';
       });
     }
-  }
+  } catch (e) {
+    setState(() {
+      _isTiktokInstalled = false;
+      _averageDailyUsage = "Error al obtener datos.";
+    });
+  }}
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Card(
-        elevation: 4,
-        margin: const EdgeInsets.all(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
+
+ @override
+Widget build(BuildContext context) {
+  return Center(
+    child: Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade300,
+            blurRadius: 8.0,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Icono y título
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icono
-              Icon(FontAwesomeIcons.tiktok, color: context.isDarkMode? Colors.white : Colors.black, size: 64),
-              const SizedBox(height: 16),
-
-              // Título
-              const Text(
+              Icon(FontAwesomeIcons.tiktok, color: Colors.black, size: 64),
+              SizedBox(width: 8),
+              Text(
                 "Tiktok",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.backCard,
+                ),
               ),
-              const SizedBox(height: 16),
-
-              // Contenido
-              _isTiktokInstalled
-                  ? Column(
-                      children: [
-                        Text(
-                          "Promedio diario de uso: $_averageDailyUsage min/dia",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Accesos promedio al día: $_averageDailyAccesses veces/dia",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Mayor frecuencia: $_averageDailyFrecuency",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 25),
-                        AppButtonSmall(
-                          onPressed: () async {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => AddictionPage(
-                                  appName: 'Tiktok',
-                                  averageDailyUsage: _averageDailyUsage,
-                                  averageDailyAccesses: _averageDailyAccesses,
-                                  averageDailyFrecuency: _averageDailyFrecuency,
-                                ),
-                              ),
-                            );
-                          },
-                          title: 'Diagnóstico de Adicción',
-                        ),
-                      ],
-                    )
-                  : const Text(
-                      "Tiktok no está instalado o no hay datos disponibles.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.red),
-                    ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
+          const SizedBox(height: 16),
+          Divider(color: Colors.grey.shade300, thickness: 1),
+          const SizedBox(height: 16),
 
+          _isTiktokInstalled
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Información principal
+                    Text(
+                      "Promedio diario de uso: $_averageDailyUsage min/día",
+                      style: const TextStyle(fontSize: 16, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Accesos promedio al día: $_averageDailyAccesses veces/día",
+                      style: const TextStyle(fontSize: 16, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Mayor frecuencia: $_averageDailyFrecuency",
+                      style: const TextStyle(fontSize: 16, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Título del historial
+                    const Text(
+                      "Historial de uso:",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.backCard,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Column(
+                                          children: _dailyUsage.keys.map((date) {
+                        int usageTime = _dailyUsage[date]?['time'] ?? 0;
+                        int accesses = _dailyUsage[date]?['accesses'] ?? 0;
+                        String timeRange = _dailyUsage[date]?['timeRange'] ?? '';
+
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            color: context.isDarkMode ? AppColors.backCard : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: ListTile(
+                            title: Text(
+                              date,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            subtitle: Text(
+                              "Rango: $timeRange\nTiempo de uso: $usageTime min\nAccesos: $accesses veces",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: context.isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            leading: const Icon(Icons.calendar_today, color: Colors.cyan),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    // Botón de diagnóstico
+                    Center(
+                      child: AppButtonSmall(
+                        onPressed: () async {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddictionPage(
+                                appName: 'Tiktok',
+                                averageDailyUsage: _averageDailyUsage,
+                                averageDailyAccesses: _averageDailyAccesses,
+                                averageDailyFrecuency: _averageDailyFrecuency,
+                              ),
+                            ),
+                          );
+                        },
+                        title: 'Diagnóstico de Adicción',
+                      ),
+                    ),
+                  ],
+                )
+              : const Text(
+                  "Tiktok no está instalado o no hay datos disponibles.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.red),
+                ),
+        ],
+      ),
+    ),
+  );
+}
+}

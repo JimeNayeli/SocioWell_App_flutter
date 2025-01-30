@@ -69,24 +69,19 @@ class GetStartedPage extends StatelessWidget{
                     const SizedBox(height: 40,),
                     BasicAppButton(
                       onPressed: () async {
-                        final allPermissionsGranted =
-                        await PermissionManager().requestPermissions();
-                        if (allPermissionsGranted) {
+                        bool permissionsGranted = await PermissionManager().requestPermissions(context);
+                        if (permissionsGranted) {
                           Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (BuildContext context) => const ChooseModePage()
                                 )
                               );
-                        }else {
-                          // Mostrar un mensaje si los permisos no fueron otorgados
+                        } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Por favor, otorga los permisos necesarios para continuar.'),
-                            ),
+                            const SnackBar(content: Text('No se otorgaron todos los permisos.')),
                           );
-                        }                                             
+                        }                                          
                       },
                       title: 'Empecemos')
                 ],

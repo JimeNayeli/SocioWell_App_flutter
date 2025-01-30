@@ -1,10 +1,15 @@
 import 'package:get_it/get_it.dart';
 import 'package:tesis_v2/data/repository/answer/answer_repository_implt.dart';
 import 'package:tesis_v2/data/repository/auth/auth_repository_implt.dart';
+import 'package:tesis_v2/data/repository/usage/usage_repository_implt.dart';
 import 'package:tesis_v2/data/sources/answer/answer_firebase_service.dart';
+import 'package:tesis_v2/data/sources/usage/usage_firebase_service.dart';
 import 'package:tesis_v2/domain/repository/answer/answer.dart';
+import 'package:tesis_v2/domain/repository/usage/usage.dart';
 import 'package:tesis_v2/domain/usescases/answer/create_answer.dart';
+import 'package:tesis_v2/domain/usescases/auth/logout.dart';
 import 'package:tesis_v2/domain/usescases/auth/signin_google.dart';
+import 'package:tesis_v2/domain/usescases/usage/save_usage.dart';
 import 'data/sources/auth/auth_firebase_service.dart';
 import 'domain/repository/auth/auth.dart';
 import 'package:tesis_v2/domain/usescases/auth/get_user.dart';
@@ -22,7 +27,7 @@ Future<void> initializeDependencies() async {
   AuthRepositoryImpl()
  );
 
-   sl.registerSingleton<AnswerFirebaseService>(
+  sl.registerSingleton<AnswerFirebaseService>(
   AnswerFirebaseServiceImpl()
  );
 
@@ -30,6 +35,13 @@ Future<void> initializeDependencies() async {
   AnswerRepositoryImpl()
  );
 
+ sl.registerSingleton<UsageFirebaseService>(
+  UsageFirebaseServiceImpl()
+ );
+
+  sl.registerSingleton<UsageRepository>(
+  UsageRepositoryImpl()
+ );
 
  sl.registerSingleton<SignupUseCase>(
   SignupUseCase()
@@ -52,6 +64,12 @@ Future<void> initializeDependencies() async {
  );
   sl.registerSingleton<SigninGoogleCase>(
     SigninGoogleCase()
+  );
+  sl.registerSingleton<LogoutCase>(
+    LogoutCase()
+  );
+  sl.registerSingleton<CreateUsageUseCase>(
+    CreateUsageUseCase()
   );
  
 }
