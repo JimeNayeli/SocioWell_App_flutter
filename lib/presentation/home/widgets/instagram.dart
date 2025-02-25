@@ -20,9 +20,10 @@ class _InstagramState extends State<Instagram> {
   String _averageDailyAccesses = "Cargando...";
   String _averageDailyFrecuency = "Cargando...";
   bool _isInstagramInstalled = true;
-  Map<String, int> opensPerDay = {};
-  // Nueva estructura para el ListView
+
   Map<String, Map<String, dynamic>> _dailyUsage = {};
+    Map<String, Map<String, dynamic>> dailyRanges = {};
+  Map<String, int> usageTimePerDay = {};
 
   @override
   void initState() {
@@ -31,245 +32,197 @@ class _InstagramState extends State<Instagram> {
   }
 
 Future<void> _fetchInstagramUsage() async {
-  try {
-    bool isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
-    if (!isPermissionGranted) {
-      await UsageStats.grantUsagePermission();
-      isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
-
+    try {
+      bool isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
       if (!isPermissionGranted) {
-        setState(() {
-          _averageDailyUsage = "Permiso denegado.";
-          _isInstagramInstalled = false;
-        });
-        return;
+        await UsageStats.grantUsagePermission();
+        isPermissionGranted = await UsageStats.checkUsagePermission() ?? false;
+
+        if (!isPermissionGranted) {
+          setState(() {
+            _averageDailyUsage = "Permiso denegado.";
+            _isInstagramInstalled = false;
+          });
+          return;
+        }
       }
-    }
 
-    if (isPermissionGranted == true) {
-      DateTime now = DateTime.now();
-      //print('🕒 Fecha actual: ${now.toString()}');
+      if (isPermissionGranted) {
+        DateTime now = DateTime.now();
+        DateTime endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        DateTime startDate = DateTime(now.year, now.month, now.day - 4, 0, 0, 0);
 
-      DateTime endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
-      // Inicio hace 4 días a las 00:00:00
-      DateTime startDate = DateTime(
-        now.year,
-        now.month,
-        now.day - 4,
-        0,
-        0,
-        0,
-      );
+        List<UsageInfo> usageInfoList = await UsageStats.queryUsageStats(startDate, endDate);
 
-      
+        var InstagramUsage = usageInfoList.where((info) =>
+            info.packageName!.contains('com.instagram.android') ||
+            info.packageName!.contains('com.instagram.lite')).toList();
 
-      //print('📅 Periodo de análisis:');
-      //print('   Inicio: ${startDate.toString()}');
-      //print('   Fin: ${endDate.toString()}');
+        DateTime? referenceTime;
+        for (var usage in InstagramUsage) {
+          if (usage.firstTimeStamp != null) {
+            DateTime timestamp = DateTime.fromMillisecondsSinceEpoch(
+              int.parse(usage.firstTimeStamp!),
+            );
+            if (referenceTime == null || timestamp.isBefore(referenceTime)) {
+              referenceTime = timestamp;
+            }
+          }
+        }
+        referenceTime ??= DateTime.now();
 
-      List<UsageInfo> usageInfoList = await UsageStats.queryUsageStats(
-        startDate,
-        endDate,
-      );
+        int referenceHour = referenceTime.hour;
+        int referenceMinute = referenceTime.minute;
 
-      var InstagramUsage = usageInfoList.where((info) =>
-          info.packageName!.contains('com.instagram.android') ||
-          info.packageName!.contains('com.instagram.lite')).toList();
+        // Inicializar el mapa para los últimos 4 días con rangos horarios
+        dailyRanges.clear();
+        usageTimePerDay.clear();
+        for (int i = 0; i < 4; i++) {
+          DateTime rangeStart = DateTime(now.year, now.month, now.day - i - 1, referenceHour, referenceMinute);
+          DateTime rangeEnd = DateTime(now.year, now.month, now.day - i, referenceHour, referenceMinute);
 
-      //print('📱 Registros de uso encontrados: ${InstagramUsage.length}');
+          String formattedDate = "${rangeStart.year}-${rangeStart.month.toString().padLeft(2, '0')}-${rangeStart.day.toString().padLeft(2, '0')}";
+          String timeRange = "${referenceHour.toString().padLeft(2, '0')}:${referenceMinute.toString().padLeft(2, '0')} → ${rangeEnd.day.toString().padLeft(2, '0')}/${rangeEnd.month.toString().padLeft(2, '0')} ${referenceHour.toString().padLeft(2, '0')}:${referenceMinute.toString().padLeft(2, '0')}";
 
-      DateTime? referenceTime;
-      for (var usage in InstagramUsage) {
-        if (usage.firstTimeStamp != null) {
-          DateTime timestamp = DateTime.fromMillisecondsSinceEpoch(
+          dailyRanges[formattedDate] = {
+            "start": rangeStart,
+            "end": rangeEnd,
+            "timeRange": timeRange
+          };
+          usageTimePerDay[formattedDate] = 0;
+        }
+
+        // Procesar tiempo de uso
+        for (var usage in InstagramUsage) {
+          if (usage.totalTimeInForeground == null || 
+              usage.firstTimeStamp == null || 
+              usage.lastTimeStamp == null) {
+            continue;
+          }
+
+          DateTime firstTimestamp = DateTime.fromMillisecondsSinceEpoch(
             int.parse(usage.firstTimeStamp!),
           );
-          if (referenceTime == null || timestamp.isBefore(referenceTime)) {
-            referenceTime = timestamp;
-          }
-        }
-      }
-      referenceTime ??= DateTime.now();
-      // Usar la hora del referenceTime para los rangos
-    int referenceHour = referenceTime.hour;
-    int referenceMinute = referenceTime.minute;
-      Map<String, Map<String, dynamic>> dailyRanges = {};
-      Map<String, int> usageTimePerDay = {};
-      
-      
-      // Inicializar el mapa para los últimos 4 días con rangos horarios
-      for (int i = 0; i < 4; i++) {
-      DateTime rangeStart = DateTime(
-        now.year, 
-        now.month, 
-        now.day - i - 1, 
-        referenceHour, 
-        referenceMinute
-      );
-      DateTime rangeEnd = DateTime(
-        now.year, 
-        now.month, 
-        now.day - i, 
-        referenceHour, 
-        referenceMinute
-      );
-      
-      String formattedDate = "${rangeStart.year}-${rangeStart.month.toString().padLeft(2, '0')}-${rangeStart.day.toString().padLeft(2, '0')}";
-      String timeRange = "${referenceHour.toString().padLeft(2, '0')}:${referenceMinute.toString().padLeft(2, '0')} → ${rangeEnd.day.toString().padLeft(2, '0')}/${rangeEnd.month.toString().padLeft(2, '0')} ${referenceHour.toString().padLeft(2, '0')}:${referenceMinute.toString().padLeft(2, '0')}";
-      
-      dailyRanges[formattedDate] = {
-        "start": rangeStart,
-        "end": rangeEnd,
-        "timeRange": timeRange
-      };
-      usageTimePerDay[formattedDate] = 0;
-      //print('🗓️ Inicializando día: $formattedDate (${timeRange})');
-    }
-
-      // Procesar tiempo de uso
-      for (var usage in InstagramUsage) {
-        if (usage.totalTimeInForeground == null || 
-            usage.firstTimeStamp == null || 
-            usage.lastTimeStamp == null) {
-          continue;
-        }
-
-        DateTime firstTimestamp = DateTime.fromMillisecondsSinceEpoch(
-          int.parse(usage.firstTimeStamp!),
-        );
-        
-        String formattedDate = "${firstTimestamp.year}-${firstTimestamp.month.toString().padLeft(2, '0')}-${firstTimestamp.day.toString().padLeft(2, '0')}";
-        
-        if (usageTimePerDay.containsKey(formattedDate)) {
-          int totalTime = int.parse(usage.totalTimeInForeground!);
-          int timeInMinutes = totalTime ~/ (1000 * 60);
-          usageTimePerDay[formattedDate] = (usageTimePerDay[formattedDate] ?? 0) + timeInMinutes;
-        }
-      }
-
-      // Procesar accesos
-      Map<String, int> opensPerDay = {};
-      Map<String, Map<String, dynamic>> frequency = {
-        "Mañana": {"count": 0, "hours": "6:00 - 11:59"},
-        "Tarde": {"count": 0, "hours": "12:00 - 17:59"},
-        "Noche": {"count": 0, "hours": "18:00 - 23:59"},
-        "Madrugada": {"count": 0, "hours": "0:00 - 5:59"},
-      };
-
-      // Inicializar opensPerDay con las mismas fechas
-      dailyRanges.keys.forEach((date) {
-        opensPerDay[date] = 0;
-      });
-
-      DateTime? lastEventTime;
-      const int sessionThresholdMillis = 7 * 60 * 1000;
-
-      List<EventUsageInfo> events = await UsageStats.queryEvents(startDate, endDate);
-
-      for (var event in events) {
-        if (event.packageName != null &&
-            (event.packageName!.contains('com.instagram.android') ||
-             event.packageName!.contains('com.instagram.lite')) &&
-            event.timeStamp != null &&
-            event.eventType == '1') {
-
-          DateTime eventTime = DateTime.fromMillisecondsSinceEpoch(
-            int.parse(event.timeStamp!),
-          );
-
-          // Encontrar el rango al que pertenece este evento
-          String? relevantDate;
-          for (var entry in dailyRanges.entries) {
-            // Modificar la condición del rango para incluir los momentos exactos
-            if ((eventTime.isAfter(entry.value["start"]) || eventTime.isAtSameMomentAs(entry.value["start"])) && 
-                (eventTime.isBefore(entry.value["end"]) || eventTime.isAtSameMomentAs(entry.value["end"]))) {
-              relevantDate = entry.key;
-              break;
-            }
-          }
-
-          if (relevantDate != null) {
-            if (lastEventTime == null ||
-                eventTime.difference(lastEventTime).inMilliseconds > sessionThresholdMillis) {
-              opensPerDay[relevantDate] = (opensPerDay[relevantDate] ?? 0) + 1;
-
-              int hour = eventTime.hour;
-              String period;
-              if (hour >= 6 && hour < 12) {
-                period = "Mañana";
-              } else if (hour >= 12 && hour < 18) {
-                period = "Tarde";
-              } else if (hour >= 18 && hour < 24) {
-                period = "Noche";
-              } else {
-                period = "Madrugada";
-              }
-              
-              frequency[period]!["count"] = (frequency[period]!["count"] ?? 0) + 1;
-            }
-            lastEventTime = eventTime;
-          }
-        }
-      }
-      
-
-      // Calcular promedios y actualizar el estado
-      var validDays = usageTimePerDay.values.where((time) => time > 0).toList();
-      var validAccessDays = opensPerDay.values.where((count) => count > 0).toList();
-      opensPerDay.forEach((date, count) {
-      opensPerDay.forEach((date, count) {
-      if (usageTimePerDay[date] != null && usageTimePerDay[date]! > 0) {
-        // Asignar al menos 1 acceso si hay tiempo de uso y los accesos son 0
-        if (count == 0) {
-          opensPerDay[date] = 1;
-          // print('⚠️ Ajustando accesos para $date: Accesos ahora 1');
-        }
-      } else {
-        // Si el tiempo de uso es 0, asegurarse de que los accesos sean 0
-        opensPerDay[date] = 0;
-        // print('⚠️ Ajustando accesos para $date: Accesos ahora 0');
-      }
-});
-
-    });
-
-      
-      int averageMinutes = validDays.isEmpty ? 0 : 
-          validDays.reduce((a, b) => a + b) ~/ 4;
           
-      int avgAccesses = validAccessDays.isEmpty ? 0 : 
-          validAccessDays.reduce((sum, count) => sum + count) ~/ 4;
+          String formattedDate = "${firstTimestamp.year}-${firstTimestamp.month.toString().padLeft(2, '0')}-${firstTimestamp.day.toString().padLeft(2, '0')}";
+          
+          if (usageTimePerDay.containsKey(formattedDate)) {
+            int totalTime = int.parse(usage.totalTimeInForeground!);
+            int timeInMinutes = totalTime ~/ (1000 * 60);
+            usageTimePerDay[formattedDate] = (usageTimePerDay[formattedDate] ?? 0) + timeInMinutes;
+          }
+        }
 
-      var mostFrequentTime = frequency.entries
-          .reduce((a, b) => (a.value["count"] ?? 0) > (b.value["count"] ?? 0) ? a : b)
-          .key;
-
-      // Actualizar _dailyUsage con los nuevos valores y rangos horarios
-      _dailyUsage.clear();
-      usageTimePerDay.forEach((day, time) {
-      if (!_dailyUsage.containsKey(day)) {
-        _dailyUsage[day] = {
-          "time": time,
-          "accesses": opensPerDay[day] ?? 0,
-          "timeRange": dailyRanges[day]?["timeRange"],
+        // Procesar accesos
+        Map<String, int> opensPerDay = {};
+        Map<String, Map<String, dynamic>> frequency = {
+          "Mañana": {"count": 0, "hours": "6:00 - 11:59"},
+          "Tarde": {"count": 0, "hours": "12:00 - 17:59"},
+          "Noche": {"count": 0, "hours": "18:00 - 23:59"},
+          "Madrugada": {"count": 0, "hours": "0:00 - 5:59"},
         };
-      } else {
-        _dailyUsage[day]?["time"] += time;
-        _dailyUsage[day]?["accesses"] += opensPerDay[day] ?? 0;
+
+        // Inicializar opensPerDay con las mismas fechas
+        dailyRanges.keys.forEach((date) {
+          opensPerDay[date] = 0;
+        });
+
+        DateTime? lastEventTime;
+        const int sessionThresholdMillis = 7 * 60 * 1000;
+
+        List<EventUsageInfo> events = await UsageStats.queryEvents(startDate, endDate);
+
+        for (var event in events) {
+          if (event.packageName != null &&
+              (event.packageName!.contains('com.instagram.android') ||
+               event.packageName!.contains('com.instagram.lite')) &&
+              event.timeStamp != null &&
+              event.eventType == '1') {
+
+            DateTime eventTime = DateTime.fromMillisecondsSinceEpoch(
+              int.parse(event.timeStamp!),
+            );
+
+            // Encontrar el rango al que pertenece este evento
+            String? relevantDate;
+            for (var entry in dailyRanges.entries) {
+              if ((eventTime.isAfter(entry.value["start"]) || eventTime.isAtSameMomentAs(entry.value["start"])) && 
+                  (eventTime.isBefore(entry.value["end"]) || eventTime.isAtSameMomentAs(entry.value["end"]))) {
+                relevantDate = entry.key;
+                break;
+              }
+            }
+
+            if (relevantDate != null) {
+              if (lastEventTime == null ||
+                  eventTime.difference(lastEventTime).inMilliseconds > sessionThresholdMillis) {
+                opensPerDay[relevantDate] = (opensPerDay[relevantDate] ?? 0) + 1;
+
+                int hour = eventTime.hour;
+                String period;
+                if (hour >= 6 && hour < 12) {
+                  period = "Mañana";
+                } else if (hour >= 12 && hour < 18) {
+                  period = "Tarde";
+                } else if (hour >= 18 && hour < 24) {
+                  period = "Noche";
+                } else {
+                  period = "Madrugada";
+                }
+                
+                frequency[period]!["count"] = (frequency[period]!["count"] ?? 0) + 1;
+              }
+              lastEventTime = eventTime;
+            }
+          }
+        }
+
+        // Ajustar accesos si hay tiempo de uso pero accesos son 0
+        opensPerDay.forEach((date, count) {
+          if (usageTimePerDay[date] != null && usageTimePerDay[date]! > 0 && count == 0) {
+            opensPerDay[date] = 1;
+          } else if (usageTimePerDay[date] == 0) {
+            opensPerDay[date] = 0;
+          }
+        });
+
+        // Calcular promedios y actualizar el estado
+        var validDays = usageTimePerDay.values.where((time) => time > 0).toList();
+        var validAccessDays = opensPerDay.values.where((count) => count > 0).toList();
+
+        int averageMinutes = validDays.isEmpty ? 0 : 
+            (validDays.reduce((a, b) => a + b) / 4).round();
+
+        int avgAccesses = validAccessDays.isEmpty ? 0 : 
+            (validAccessDays.reduce((sum, count) => sum + count) / 4).round();
+
+
+        var mostFrequentTime = frequency.entries
+            .reduce((a, b) => (a.value["count"] ?? 0) > (b.value["count"] ?? 0) ? a : b)
+            .key;
+
+        _dailyUsage.clear();
+        usageTimePerDay.forEach((day, time) {
+          _dailyUsage[day] = {
+            "time": time,
+            "accesses": opensPerDay[day] ?? 0,
+            "timeRange": dailyRanges[day]?["timeRange"],
+          };
+        });
+
+        setState(() {
+          _averageDailyUsage = averageMinutes.toString();
+          _averageDailyAccesses = avgAccesses.toString();
+          _averageDailyFrecuency = mostFrequentTime;
+        });
       }
-    });
+    } catch (e) {
       setState(() {
-        _averageDailyUsage = averageMinutes.toString();
-        _averageDailyAccesses = avgAccesses.toString();
-        _averageDailyFrecuency = mostFrequentTime;
+        _isInstagramInstalled = false;
+        _averageDailyUsage = "Error al obtener datos.";
       });
     }
-  } catch (e) {
-    setState(() {
-      _isInstagramInstalled = false;
-      _averageDailyUsage = "Error al obtener datos.";
-    });
-  }}
+  }
 
   @override
   Widget build(BuildContext context) {

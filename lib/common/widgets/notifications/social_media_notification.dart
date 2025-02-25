@@ -108,7 +108,7 @@ Timer.periodic(const Duration(seconds: 10), (timer) async {
         final usageTime = timestamp.difference(startTime);
 
         // Ignorar cierres que ocurren inmediatamente después de abrir
-        if (usageTime.inSeconds < 4) {
+        if (usageTime.inSeconds < 5) {
           //print('Cierre ignorado debido a tiempo muy corto: $appName');
           continue;
         }
@@ -131,13 +131,13 @@ Timer.periodic(const Duration(seconds: 10), (timer) async {
       if (usageTime.inMinutes == 185) {
         _showNotification(
           'Uso excesivo',
-          'Has usado $appName por más de 3 horas. El uso prolongado puede afectar tu bienestar. Toma un descanso.',
+          'Has usado $appName por más de 3 horas. El uso prolongado puede afectar tu bienestar. ¡Toma un descanso!.',
         );
       }
       if (usageTime.inMinutes >= 60 && usageTime.inMinutes % 60 == 0) {
         _showNotification(
           'Alerta de uso continuo',
-          'Has estado usando $appName por ${usageTime.inMinutes} minutos. Recuerda hacer una pausa',
+          'Has estado usando $appName por  ${usageTime.inMinutes}. Recuerda hacer una pausa',
         );
       }
     });
@@ -170,6 +170,7 @@ Timer.periodic(const Duration(seconds: 10), (timer) async {
     'Background Monitor',
     importance: Importance.high,
     priority: Priority.high,
+    styleInformation: BigTextStyleInformation(''),
   );
 
   await _notifications.show(
