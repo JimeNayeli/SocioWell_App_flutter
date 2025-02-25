@@ -6,7 +6,6 @@ import 'package:tesis_v2/core/configs/assets/app_vectors.dart';
 import 'package:tesis_v2/data/models/auth/create_user_req.dart';
 import 'package:tesis_v2/domain/usescases/auth/signup.dart';
 import 'package:tesis_v2/presentation/auth/pages/signin.dart';
-import 'package:tesis_v2/presentation/home/pages/home.dart';
 import 'package:tesis_v2/service_locator.dart';
 
 class SignupPage extends StatelessWidget {
@@ -58,7 +57,7 @@ class SignupPage extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(snackbar);
                   return;
                 }
-                
+
                 if (_password.text != _confirmPassword.text) {
                   var snackbar = const SnackBar(
                     content: Text("Las contraseñas no coinciden."),
@@ -72,24 +71,39 @@ class SignupPage extends StatelessWidget {
                   params: CreateUserReq(
                     fullName: _fullName.text.toString(),
                     email: _email.text.toString(),
-                    password: _password.text.toString()
-                  )
+                    password: _password.text.toString(),
+                  ),
                 );
+
                 result.fold(
-                  (l){
-                    var snackbar = SnackBar(content: Text(l),behavior: SnackBarBehavior.floating,);
+                  (l) {
+                    var snackbar = SnackBar(
+                      content: Text(l),
+                      behavior: SnackBarBehavior.floating,
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(snackbar);
                   },
-                  (r){
-                    Navigator.pushAndRemoveUntil(
-                      context, 
-                      MaterialPageRoute(builder: (BuildContext context) => HomePage(fullName: _fullName.text),), 
-                      (route) => false
+                  (r) {
+                    // Mostrar mensaje de verificación y redirigir al login
+                    var snackbar = const SnackBar(
+                      content: Text(
+                        "Registro exitoso. Por favor, revisa tu bandeja de entrada y haz clic en el enlace de verificación que te hemos enviado.",
+                      ),
+                      behavior: SnackBarBehavior.floating,
                     );
-                  }
+                    ScaffoldMessenger.of(context).showSnackBar(snackbar);
+
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (BuildContext context) => const SigninPage(),
+                      ),
+                      (route) => false,
+                    );
+                  },
                 );
               },
-              title: 'Crear Cuenta'
+              title: 'Crear Cuenta',
             )
           ],
         ),

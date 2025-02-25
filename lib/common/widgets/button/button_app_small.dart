@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tesis_v2/common/helpers/is_dark_mode.dart';
+import 'package:tesis_v2/core/configs/theme/app_colors.dart';
 
 class AppButtonSmall extends StatelessWidget {
   final VoidCallback onPressed;
@@ -18,6 +19,7 @@ class AppButtonSmall extends StatelessWidget {
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         fixedSize: Size(250, height ?? 50),
+        backgroundColor: context.isDarkMode? AppColors.backTab : AppColors.backAdvice
       ), 
       child: Text(
         title,

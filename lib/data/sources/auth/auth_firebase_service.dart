@@ -16,6 +16,8 @@ abstract class AuthFirebaseService {
   Future<Either> getUser();
 
   Future<Either> signinWithGoogle();
+
+  Future<Either> logout(); 
 }
 
 class AuthFirebaseServiceImpl extends AuthFirebaseService {
@@ -29,7 +31,10 @@ Future<Either> signin(SigninUserReq signinUserReq) async {
       email: signinUserReq.email,
       password: signinUserReq.password,
     );
-
+    // Validar si el correo está verificado
+    if (!credential.user!.emailVerified) {
+      return const Left('Correo no verificado. Verifica tu bandeja de entrada y haz clic en el enlace de verificación que te hemos enviado. Si no lo encuentras, verifica también la carpeta de spam.');
+    }
     // Obtener UID del usuario autenticado
     String? uid = credential.user?.uid;
     if (uid == null) {
@@ -74,7 +79,7 @@ Future<Either> signin(SigninUserReq signinUserReq) async {
         email: createUserReq.email,
         password:createUserReq.password
       );
-      
+      await data.user?.sendEmailVerification();
       FirebaseFirestore.instance.collection('Users').doc(data.user?.uid)
       .set(
         {
@@ -83,7 +88,7 @@ Future<Either> signin(SigninUserReq signinUserReq) async {
         }
       );
 
-      return const Right('Registro exitoso!!');
+      return const Right('Registro exitoso!!. Por favor, verifica tu correo.');
 
     } on FirebaseAuthException catch(e) {
       String message = '';
@@ -118,58 +123,73 @@ Future<Either> signin(SigninUserReq signinUserReq) async {
     }
   }
   @override
-Future<Either> signinWithGoogle() async {
-  try {
-    final GoogleSignIn googleSignIn = GoogleSignIn();
-    await googleSignIn.signOut();
-    await FirebaseAuth.instance.signOut();
-    // Inicia el proceso de Google Sign-In
-    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+  Future<Either> signinWithGoogle() async {
+    try {
+      // Inicia el proceso de Google Sign-In
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
-    if (googleUser == null) {
-      return const Left('El inicio de sesión con Google fue cancelado.');
+      if (googleUser == null) {
+        return const Left('El inicio de sesión con Google fue cancelado.');
+      }
+
+      // Obtén la autenticación de Google
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Credenciales para Firebase
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Autenticar con Firebase
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+      // Verificar si el usuario existe en Firestore
+      final uid = userCredential.user?.uid;
+      if (uid == null) {
+        return const Left('No se pudo obtener el UID del usuario.');
+      }
+
+      final userDoc = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
+
+      if (!userDoc.exists) {
+        // Crear usuario en Firestore si no existe
+        await FirebaseFirestore.instance.collection('Users').doc(uid).set({
+          'name': userCredential.user?.displayName,
+          'email': userCredential.user?.email,
+          'photoURL': userCredential.user?.photoURL ?? AppURLs.defaultImage,
+        });
+      }
+
+      // Mapear los datos del usuario
+      UserModel userModel = UserModel(
+        fullName: userCredential.user?.displayName ?? 'Usuario',
+        email: userCredential.user?.email ?? '',
+        imageURL: userCredential.user?.photoURL ?? AppURLs.defaultImage,
+      );
+
+      return Right(userModel);
+    } catch (e) {
+      return Left('Error en Google Sign-In: ${e.toString()}');
     }
-
-    // Obtén la autenticación de Google
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-    // Credenciales para Firebase
-    final AuthCredential credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    // Autenticar con Firebase
-    final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-
-    // Verificar si el usuario existe en Firestore
-    final uid = userCredential.user?.uid;
-    if (uid == null) {
-      return const Left('No se pudo obtener el UID del usuario.');
-    }
-
-    final userDoc = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
-
-    if (!userDoc.exists) {
-      // Crear usuario en Firestore si no existe
-      await FirebaseFirestore.instance.collection('Users').doc(uid).set({
-        'name': userCredential.user?.displayName,
-        'email': userCredential.user?.email,
-        'photoURL': userCredential.user?.photoURL ?? AppURLs.defaultImage,
-      });
-    }
-
-    // Mapear los datos del usuario
-    UserModel userModel = UserModel(
-      fullName: userCredential.user?.displayName ?? 'Usuario',
-      email: userCredential.user?.email ?? '',
-      imageURL: userCredential.user?.photoURL ?? AppURLs.defaultImage,
-    );
-
-    return Right(userModel);
-  } catch (e) {
-    return Left('Error en Google Sign-In: ${e.toString()}');
   }
-}
+
+  @override
+  Future<Either> logout() async {
+    try {
+      // Cerrar sesión de Firebase Authentication
+      await FirebaseAuth.instance.signOut();
+
+      // Si estás usando GoogleSignIn, también cierra sesión de Google
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      if (await googleSignIn.isSignedIn()) {
+        await googleSignIn.signOut();
+      }
+
+      return const Right('Sesión cerrada exitosamente.');
+    } catch (e) {
+      return Left('Error al cerrar sesión: ${e.toString()}');
+    }
+  }
   
 }

@@ -46,7 +46,6 @@ class AnswerFirebaseServiceImpl extends AnswerFirebaseService{
       }, SetOptions(merge: true)); // Sobrescribe sin borrar otros campos
       return const Right('Respuestas guardadas exitosamente!!');
     } catch (e) {
-      print("Error guardando respuestas: $e");
       return const Left('Ha ocurrido un error al guardar las respuestas.');
     }
   }

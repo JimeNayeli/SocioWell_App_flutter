@@ -3,7 +3,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'dart:async';
 
-
 class BackgroundMonitor {
   static const Map<String, String> socialApps = {
     'com.facebook.katana': 'Facebook',
@@ -71,8 +70,7 @@ class BackgroundMonitor {
     }
 
     
-
- Timer.periodic(const Duration(seconds: 10), (timer) async {
+Timer.periodic(const Duration(seconds: 10), (timer) async {
     final now = DateTime.now();
     final events = await UsageStats.queryEvents(
       now.subtract(const Duration(seconds: 10)),
@@ -133,18 +131,17 @@ class BackgroundMonitor {
       if (usageTime.inMinutes == 185) {
         _showNotification(
           'Uso excesivo',
-          'Has usado $appName por más de 3 horas. El uso prolongado puede afectar tu bienestar. Toma un descanso.',
+          'Has usado $appName por más de 3 horas. El uso prolongado puede afectar tu bienestar. ¡Toma un descanso!.',
         );
       }
       if (usageTime.inMinutes >= 60 && usageTime.inMinutes % 60 == 0) {
         _showNotification(
           'Alerta de uso continuo',
-          'Has estado usando $appName por ${usageTime.inMinutes} minutos. Recuerda hacer una pausa',
+          'Has estado usando $appName por  ${usageTime.inMinutes}. Recuerda hacer una pausa',
         );
       }
     });
   });
-
   }
 
   static Future<void> _initNotifications() async {
@@ -173,6 +170,7 @@ class BackgroundMonitor {
     'Background Monitor',
     importance: Importance.high,
     priority: Priority.high,
+    styleInformation: BigTextStyleInformation(''),
   );
 
   await _notifications.show(
